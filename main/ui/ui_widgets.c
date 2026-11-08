@@ -153,6 +153,8 @@ struct ui_kv_row_spinbox_cfg_t make_row_spinbox_kv_cfg(const char* title)
                                             }};
 }
 
+#if (0)
+
 void ui_header_create(
     lv_obj_t* parent, const char* title, const char* right_text, lv_event_cb_t right_cb, void* user_data)
 {
@@ -213,3 +215,5 @@ void ui_header_create(
 
     lv_obj_add_event_cb(more_btn, right_cb, LV_EVENT_CLICKED, user_data);
 }
+
+#endif

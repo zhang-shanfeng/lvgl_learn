@@ -47,6 +47,16 @@ static void button_event_cb(void* arg, void* usr_data)
     button_event_t event = iot_button_get_event((button_handle_t)arg);
     uint32_t lv_key = 0;
 
+    /* ---- 全局键：打开功能列表，不写入 g_current_lv_key ---- */
+    if (btn_id == 6 && !is_edited_mode)
+    {
+        if (event == BUTTON_PRESS_DOWN)
+        {
+            ui_show_list_page(); /* 内部调用 show_page(PAGE_LIST) */
+        }
+        return;
+    }
+
     switch (btn_id)
     {
         case 1:
@@ -84,7 +94,10 @@ static void button_event_cb(void* arg, void* usr_data)
     else if (event == BUTTON_PRESS_UP || event == BUTTON_PRESS_END)
     {
         xSemaphoreTake(g_key_mutex, portMAX_DELAY);
-        if (g_current_lv_key == lv_key) { g_current_lv_key = 0; }
+        if (g_current_lv_key == lv_key)
+        {
+            g_current_lv_key = 0;
+        }
         xSemaphoreGive(g_key_mutex);
     }
 }
@@ -98,9 +111,7 @@ static void button_event_cb(void* arg, void* usr_data)
  * @return button_handle_t
  * @date 2026-10-07
  *************************************************************************************************/
-static button_handle_t create_adc_button(uint8_t index,
-                                         uint16_t min_mv,
-                                         uint16_t max_mv)
+static button_handle_t create_adc_button(uint8_t index, uint16_t min_mv, uint16_t max_mv)
 {
     // 1. 基础配置，通常留空或设置通用参数
     const button_config_t btn_cfg = {
@@ -141,45 +152,20 @@ void button_task_init(void)
 
     for (int i = 0; i < 8; i++)
     {
-        button_handle_t btn = create_adc_button(
-            i, button_ranges[i].min_mv, button_ranges[i].max_mv);
+        button_handle_t btn = create_adc_button(i, button_ranges[i].min_mv, button_ranges[i].max_mv);
 
         if (btn && i < 7)
         {
-            iot_button_register_cb(btn,
-                                   BUTTON_PRESS_DOWN,
-                                   NULL,
-                                   button_event_cb,
-                                   (void*)(intptr_t)(i + 1));
-            iot_button_register_cb(btn,
-                                   BUTTON_PRESS_UP,
-                                   NULL,
-                                   button_event_cb,
-                                   (void*)(intptr_t)(i + 1));
-            iot_button_register_cb(btn,
-                                   BUTTON_PRESS_END,
-                                   NULL,
-                                   button_event_cb,
-                                   (void*)(intptr_t)(i + 1));
+            iot_button_register_cb(btn, BUTTON_PRESS_DOWN, NULL, button_event_cb, (void*)(intptr_t)(i + 1));
+            iot_button_register_cb(btn, BUTTON_PRESS_UP, NULL, button_event_cb, (void*)(intptr_t)(i + 1));
+            iot_button_register_cb(btn, BUTTON_PRESS_END, NULL, button_event_cb, (void*)(intptr_t)(i + 1));
 
-            iot_button_register_cb(btn,
-                                   BUTTON_SINGLE_CLICK,
-                                   NULL,
-                                   button_event_cb,
-                                   (void*)(intptr_t)(i + 1));
+            iot_button_register_cb(btn, BUTTON_SINGLE_CLICK, NULL, button_event_cb, (void*)(intptr_t)(i + 1));
         }
         if (btn && i == 7)
         {
-            iot_button_register_cb(btn,
-                                   BUTTON_SINGLE_CLICK,
-                                   NULL,
-                                   button_event_cb,
-                                   (void*)(intptr_t)(i + 1));
-            iot_button_register_cb(btn,
-                                   BUTTON_PRESS_DOWN,
-                                   NULL,
-                                   button_event_cb,
-                                   (void*)(intptr_t)(i + 1));
+            iot_button_register_cb(btn, BUTTON_SINGLE_CLICK, NULL, button_event_cb, (void*)(intptr_t)(i + 1));
+            iot_button_register_cb(btn, BUTTON_PRESS_DOWN, NULL, button_event_cb, (void*)(intptr_t)(i + 1));
         }
     }
 }
