@@ -1,5 +1,7 @@
 # 项目介绍
 
+该分支：`study/single-screen-containers` 学习 LVGL 单个 screen + 多容器来设计多页面效果。
+
 物料清单：
 - ESP-IDF 5.5.6
 - ESP32S3
