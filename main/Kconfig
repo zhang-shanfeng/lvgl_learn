@@ -1,0 +1,10 @@
+menu "调试选项"
+
+config ENABLE_FixedString_TEST_FUNC
+    bool "启用 test 函数（仅调试用）"
+    default n
+    help
+        选中此项后，test 函数会被编译进固件。
+        发布版本请务必取消选中。
+
+endmenu

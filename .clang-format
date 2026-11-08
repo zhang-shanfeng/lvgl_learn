@@ -1,0 +1,27 @@
+BasedOnStyle: Google # LLVM, Google
+IndentWidth: 4
+ColumnLimit: 120
+
+AllowShortLoopsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: Never # if 语句强制换行，禁止单行 if
+AllowShortBlocksOnASingleLine: true
+NamespaceIndentation: None # 命名空间缩进 All None Inner
+AccessModifierOffset: -4
+
+AllowShortFunctionsOnASingleLine: None # 函数强制换行，禁止单行函数
+
+BreakBeforeBraces: Custom
+
+BinPackArguments: true
+BinPackParameters: false
+AlignAfterOpenBracket: Align
+ContinuationIndentWidth: 4
+
+BraceWrapping:
+  AfterControlStatement: true
+  AfterFunction: true
+  AfterEnum: true
+  AfterStruct: true
+  AfterClass: true
+  AfterNamespace: true
+  BeforeElse: true

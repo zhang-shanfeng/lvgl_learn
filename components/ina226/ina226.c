@@ -1,0 +1,169 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <math.h>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_err.h>
+
+#include "ina226.h"
+#include "ina226_defs.h"
+
+
+static esp_err_t ina226_write_register(ina226_device_t *device, uint8_t reg_addr, uint16_t value)
+{
+    uint8_t write_buf[3] = {reg_addr, value >> 8, value & 0xFF};
+    return i2c_master_transmit(
+        device->config->i2c_dev,
+        write_buf, 
+        sizeof(write_buf), 
+        device->config->timeout_ms);
+}
+
+static esp_err_t ina226_read_register(ina226_device_t *device, uint8_t reg_addr, uint8_t* data, uint8_t len)
+{
+    return i2c_master_transmit_receive(
+        device->config->i2c_dev,
+        &reg_addr, 
+        1, 
+        data, 
+        len, 
+        device->config->timeout_ms);
+}
+
+esp_err_t ina226_get_manufacturer_id(ina226_device_t *device, uint16_t *manufacturer_id)
+{
+    uint8_t data[2];
+    esp_err_t err = ina226_read_register(device, INA226_REG_MANUFACTURER_ID, data, sizeof(data));
+    *manufacturer_id = (uint16_t)(data[0] << 8 | data[1]);
+    return err;
+}
+
+esp_err_t ina226_get_die_id(ina226_device_t *device, uint16_t *die_id)
+{
+    uint8_t data[2];
+    esp_err_t err = ina226_read_register(device, INA226_REG_DIE_ID, data, sizeof(data));
+    *die_id = (uint16_t)(data[0] << 8 | data[1]);
+    return err;
+}
+
+esp_err_t ina226_get_shunt_voltage(ina226_device_t *device, float *voltage)
+{
+    uint8_t data[2];
+    esp_err_t err;
+    err = ina226_read_register(device, INA226_REG_SHUNT_VOLTAGE, (uint8_t *)data, 2);
+    *voltage = (float) (data[0] << 8 | data[1]) * 2.5e-6f; /* fixed to 2.5 uV */
+    return err;
+}
+
+esp_err_t ina226_get_bus_voltage(ina226_device_t *device, float *voltage)
+{
+    uint8_t data[2];
+    esp_err_t err;
+    err = ina226_read_register(device, INA226_REG_BUS_VOLTAGE, (uint8_t*) data, 2);
+    *voltage = (float) (data[0] << 8 | data[1]) * INA226_BUS_VOLTAGE_LSB;
+    return err;
+}
+
+esp_err_t ina226_get_current(ina226_device_t *device, float *current)
+{
+    uint8_t data[2];
+    esp_err_t err;
+    err = ina226_read_register(device, INA226_REG_CURRENT, (uint8_t *)data, 2);
+    *current = ((float) (data[0] << 8 | data[1])) * device->current_lsb;
+    return err;
+}
+
+esp_err_t ina226_get_power(ina226_device_t *device, float *power)
+{
+    uint8_t data[2];
+    esp_err_t err;
+    err = ina226_read_register(device, INA226_REG_POWER, (uint8_t *)data, 2);
+    *power = (float) (data[0] << 8 | data[1]) * device->power_lsb;
+    return err;
+}
+
+esp_err_t ina226_init(ina226_device_t *device, const ina226_config_t *config)
+{
+    if (device == NULL || config == NULL || config->i2c_dev == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    esp_err_t err;
+    device->config = config;
+
+    /* write config to registers */
+    uint16_t bitmask = 0;
+    bitmask |= (config->averages << INA226_CFG_AVERAGING_OFFSET);
+    bitmask |= (config->bus_conv_time << INA226_CFG_BUS_VOLTAGE_OFFSET);
+    bitmask |= (config->shunt_conv_time << INA226_CFG_SHUNT_VOLTAGE_OFFSET);
+    bitmask |= config->mode;
+    err = ina226_write_register(device, INA226_REG_CONFIG, bitmask);
+    if(err != ESP_OK) return err;
+
+    /* write calibration*/
+    float minimum_lsb = config->max_current / 32767;
+    float current_lsb = (uint16_t)(minimum_lsb * 100000000);
+    current_lsb /= 100000000;
+    current_lsb /= 0.0001;
+    current_lsb = ceil(current_lsb);
+    current_lsb *= 0.0001;
+    device->current_lsb = current_lsb;
+    device->power_lsb = current_lsb * 25;
+    uint16_t calibration_value = (uint16_t)((0.00512) / (current_lsb * config->r_shunt));
+    err = ina226_write_register(device, INA226_REG_CALIBRATION, calibration_value);
+    if(err != ESP_OK) return err;
+
+    return ESP_OK;
+}
+
+esp_err_t ina226_get_alert_mask(ina226_device_t *device, ina226_alert_mask_t *alert_mask)
+{
+    uint8_t data[2];
+    esp_err_t err = ina226_read_register(device, INA226_REG_ALERT_MASK, data, sizeof(data));
+    if (err != ESP_OK) return err;
+
+    *alert_mask = (uint16_t)(data[0] << 8 | data[1]);
+    return err;
+}
+
+esp_err_t ina226_set_alert_mask(ina226_device_t *device, ina226_alert_mask_t alert_mask)
+{
+    return ina226_write_register(device, INA226_REG_ALERT_MASK, alert_mask);
+}
+
+esp_err_t ina226_set_alert_limit_raw(ina226_device_t *device, uint16_t limit)
+{
+    return ina226_write_register(device, INA226_REG_ALERT_LIMIT, limit);
+}
+
+esp_err_t ina226_get_alert_limit_raw(ina226_device_t *device, uint16_t *limit)
+{
+    uint8_t data[2];
+    esp_err_t err = ina226_read_register(device, INA226_REG_ALERT_LIMIT, data, sizeof(data));
+    if (err != ESP_OK) return err;
+
+    *limit = (uint16_t)(data[0] << 8 | data[1]);
+    return ESP_OK;
+}
+
+esp_err_t ina226_set_bus_voltage_alert_limit(ina226_device_t *device, float voltage)
+{
+    if (voltage < 0.0f || voltage > UINT16_MAX * INA226_BUS_VOLTAGE_LSB) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    return ina226_set_alert_limit_raw(device, (uint16_t)lroundf(voltage / INA226_BUS_VOLTAGE_LSB));
+}
+
+esp_err_t ina226_get_bus_voltage_alert_limit(ina226_device_t *device, float *voltage)
+{
+    uint16_t limit;
+    esp_err_t err = ina226_get_alert_limit_raw(device, &limit);
+    if (err != ESP_OK) return err;
+
+    *voltage = limit * INA226_BUS_VOLTAGE_LSB;
+    return ESP_OK;
+}
