@@ -227,10 +227,8 @@ void lvgl_app_init(void)
 
     fill_list_page(ui.pages[PAGE_LIST]);
 
-    // lv_obj_t* hello_label = lv_label_create(ui.pages[PAGE_HOME]);
-    // lv_label_set_text(hello_label, "Hello,World!");
-
     show_page(PAGE_HOME);
+    lcd_set_backlight(true); /* 在页面都创建完成后才开启背光 */
 }
 
 void ui_show_list_page(void)
