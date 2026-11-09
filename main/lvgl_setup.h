@@ -7,8 +7,8 @@
 #include "lvgl.h"
 
 void lcd_init(void);
-lv_display_t *lvgl_init(esp_lcd_panel_io_handle_t io_handle,
-                        esp_lcd_panel_handle_t panel_handle);
+lv_display_t *lvgl_init(esp_lcd_panel_io_handle_t io_handle, esp_lcd_panel_handle_t panel_handle);
+void lcd_set_backlight(bool enable);
 
 extern esp_lcd_panel_io_handle_t io_handle;
 extern esp_lcd_panel_handle_t panel_handle;

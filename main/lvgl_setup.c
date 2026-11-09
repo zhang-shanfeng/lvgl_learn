@@ -22,6 +22,20 @@ esp_lcd_panel_handle_t panel_handle = NULL;
 
 static const char *TAG = "lvgl_setup";
 
+/**************************************************************************************************
+ * @brief 设置背光开关
+ *
+ * @note 备注
+ * @param enable
+ * true: 开
+ * false: 关
+ * @date 2026-11-09
+ *************************************************************************************************/
+void lcd_set_backlight(bool enable)
+{
+    gpio_set_level(LCD_BL_GPIO, enable ? 1 : 0);
+}
+
 void lcd_init(void)
 {
     esp_err_t ret;
@@ -60,8 +74,7 @@ void lcd_init(void)
         .trans_queue_depth = 10,
     };
 
-    ret = esp_lcd_new_panel_io_spi(
-        (esp_lcd_spi_bus_handle_t)LCD_HOST, &io_config, &io_handle);
+    ret = esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_HOST, &io_config, &io_handle);
 
     ESP_ERROR_CHECK(ret);
 
@@ -129,13 +142,12 @@ void lcd_init(void)
 
     ESP_ERROR_CHECK(gpio_config(&bl_config));
 
-    gpio_set_level(LCD_BL_GPIO, 1);
+    lcd_set_backlight(false); /* 默认关闭背光 */
 
     ESP_LOGI(TAG, "ST7789 initialized");
 }
 
-lv_display_t *lvgl_init(esp_lcd_panel_io_handle_t io_handle,
-                        esp_lcd_panel_handle_t panel_handle)
+lv_display_t *lvgl_init(esp_lcd_panel_io_handle_t io_handle, esp_lcd_panel_handle_t panel_handle)
 {
     lvgl_port_cfg_t lvgl_cfg = ESP_LVGL_PORT_INIT_CONFIG();
 
