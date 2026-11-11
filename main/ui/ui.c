@@ -39,7 +39,18 @@ void ui_show_page(enum page_id_t id)
             lv_obj_set_hidden(ui.pages[i], true);
         }
     }
+
     ui.current_page = id; /* 更新当前页面 */
+
+    /* 更新标题栏右侧更多按钮是否显示 */
+    if (id == PAGE_LIST)
+    {
+        lv_obj_set_hidden(ui.header_right, true);
+    }
+    else
+    {
+        lv_obj_set_hidden(ui.header_right, false);
+    }
 
     static const char* titles[PAGE_COUNT] = {"List", "Home", "INA226", "PWM"};
     lv_label_set_text(ui.title_label, titles[id]);
