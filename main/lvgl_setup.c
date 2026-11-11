@@ -38,6 +38,21 @@ void lcd_set_backlight(bool enable)
 
 void lcd_init(void)
 {
+    // --------------------------------------------------
+    // 背光
+    // --------------------------------------------------
+    gpio_config_t bl_config = {
+        .pin_bit_mask = 1ULL << LCD_BL_GPIO,
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+
+    ESP_ERROR_CHECK(gpio_config(&bl_config));
+
+    lcd_set_backlight(false); /* 默认关闭背光 */
+
     esp_err_t ret;
 
     // --------------------------------------------------
@@ -128,21 +143,6 @@ void lcd_init(void)
     // 8. 开启显示
     // --------------------------------------------------
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
-
-    // --------------------------------------------------
-    // 9. 背光
-    // --------------------------------------------------
-    gpio_config_t bl_config = {
-        .pin_bit_mask = 1ULL << LCD_BL_GPIO,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-
-    ESP_ERROR_CHECK(gpio_config(&bl_config));
-
-    lcd_set_backlight(false); /* 默认关闭背光 */
 
     ESP_LOGI(TAG, "ST7789 initialized");
 }

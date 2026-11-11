@@ -8,6 +8,7 @@
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "esp_err.h"
+#include "esp_log.h"
 #include "lvgl.h"
 #include "lvgl_setup.h"
 #include "page_home.h"
@@ -16,7 +17,7 @@
 #include "ui_styles.h"
 #include "ui_widgets.h"
 
-static const char* TAG = "lcd_lvgl_task";
+static const char* TAG = "lvgl_app";
 
 static lv_indev_t* keypad_indev = NULL;
 
@@ -130,6 +131,7 @@ void lvgl_app_init(void)
     ui.indev = keypad_indev;
 
     ui.screen = lv_screen_active();
+    lv_obj_remove_style_all(ui.screen);
     lv_obj_set_size(ui.screen, lv_pct(100), lv_pct(100));
     lv_obj_set_scrollbar_mode(ui.screen, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_style_pad_all(ui.screen, 0, 0);
@@ -138,6 +140,7 @@ void lvgl_app_init(void)
 
     /* 将 ui.screen 设置为 flex column 布局方式 */
     lv_obj_set_flex_flow(ui.screen, LV_FLEX_FLOW_COLUMN);
+    ESP_LOGI(TAG, "pad_row: %d", lv_obj_get_style_pad_row(ui.screen, 0));
 
     create_header(ui.screen);
     create_content_area(ui.screen);

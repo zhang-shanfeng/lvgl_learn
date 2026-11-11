@@ -77,7 +77,7 @@ void main_cont(lv_obj_t* parent)
     border_style_apply(left);
     lv_obj_set_style_border_color(left, lv_palette_lighten(LV_PALETTE_ORANGE, 1), 0);
     lv_obj_set_style_pad_all(left, 4, 0);
-    lv_obj_set_height(left, LV_SIZE_CONTENT);
+    lv_obj_set_height(left, lv_pct(100));
 
     /* 电压行参数配置 */
     struct ui_kv_row_cfg_t cfg = make_ina226_kv_cfg("电压", "0.000V");
@@ -225,9 +225,11 @@ void build_page_ina226(lv_obj_t* page, lv_group_t* group)
         lv_style_set_bg_color(&style_root, lv_color_black());
         lv_style_set_bg_opa(&style_root, LV_OPA_100);
         lv_style_set_size(&style_root, lv_pct(100), lv_pct(100));
-        lv_style_set_pad_all(&style_root, 4);
+        lv_style_set_pad_all(&style_root, 2);
         style_root_inited = true;
     }
+    /* 给根容器 设置样式 */
+    lv_obj_add_style(page, &style_root, LV_STATE_DEFAULT);
 
     /*
      * 2列，2行 Grid 容器
@@ -238,8 +240,8 @@ void build_page_ina226(lv_obj_t* page, lv_group_t* group)
         LV_GRID_TEMPLATE_LAST,
     };
     static int32_t row_dsc[] = {
-        LV_GRID_CONTENT,
         LV_GRID_FR(1),
+        48,
         LV_GRID_TEMPLATE_LAST,
     };
 
@@ -247,15 +249,19 @@ void build_page_ina226(lv_obj_t* page, lv_group_t* group)
     lv_obj_set_style_pad_row(page, 4, 0);
     lv_obj_set_style_pad_column(page, 4, 0);
 
-    /* 给根容器 设置样式 */
-    lv_obj_add_style(page, &style_root, LV_STATE_DEFAULT);
-
     main_cont(page);
 
     current_spinbox(page);
+
     if (ina226_ui.btn_start)
+    {
         lv_group_add_obj(group, ina226_ui.btn_start);
+        ESP_LOGI(TAG, "btn_start 已加入组");
+    }
 
     if (ina226_ui.current_spinbox)
+    {
         lv_group_add_obj(group, ina226_ui.current_spinbox);
+        ESP_LOGI(TAG, "current_spinbox 已加入组");
+    }
 }

@@ -28,6 +28,14 @@ void ui_show_page(enum page_id_t id)
     if (id >= PAGE_COUNT)
         return;
 
+    /* 保存当前页面的聚焦控件 */
+    if (ui.indev)
+    {
+        lv_obj_t* focused = lv_group_get_focused(ui.groups[ui.current_page]);
+        if (focused)
+            ui.last_focused[ui.current_page] = focused;
+    }
+
     for (int i = 0; i < PAGE_COUNT; i++)
     {
         if (i == id)
@@ -67,7 +75,12 @@ void ui_show_page(enum page_id_t id)
         }
         else
         {
-            obj = lv_obj_get_child(ui.pages[id], 0);
+            obj = ui.last_focused[id];
+        }
+
+        if (!obj)
+        {
+            obj = lv_group_get_obj_by_index(ui.groups[id], 0);
         }
 
         if (obj)

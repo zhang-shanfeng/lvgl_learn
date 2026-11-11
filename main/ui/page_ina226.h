@@ -9,8 +9,6 @@ struct ina226_ui_t
     lv_obj_t *label_current_val;
     lv_obj_t *label_power_val;
     lv_obj_t *current_spinbox;
-    lv_obj_t *voltage_spinbox;
-    lv_obj_t *power_spinbox;
     lv_obj_t *btn_start;
 };
 
