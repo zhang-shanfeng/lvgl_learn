@@ -14,8 +14,8 @@ struct ina226_ui_t
     lv_obj_t *btn_start;
 };
 
-void switch_to_ina226_page(void);
 void page_ina226_update_number(struct ina226_value_t values);
-void ina226_page_init(lv_obj_t *parent);
+
+void build_page_ina226(lv_obj_t *page, lv_group_t *group);
 
 extern struct ina226_ui_t ina226_ui;

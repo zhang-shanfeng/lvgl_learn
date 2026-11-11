@@ -4,66 +4,22 @@
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
 #include "lvgl_app.h"
-#include "page_more.h"
+#include "ui.h"
 #include "ui_styles.h"
 #include "ui_widgets.h"
 
 static const char* TAG = "PAGE_INA226";
 
-static void ina226_ui_init(lv_obj_t* parent);
 static struct ui_kv_row_cfg_t make_ina226_kv_cfg(const char* title, const char* value);
 
-static void page_header(lv_obj_t* parent, const char* text);
 static void main_cont(lv_obj_t* parent);
 static void current_spinbox(lv_obj_t* parent);
 
 /* 事件函数 */
 static void toggle_btn_event_cb(lv_event_t* e);
 static void spinbox_event_handler(lv_event_t* e);
-static void spinbox_key_cb(lv_event_t* e);
-static void more_handle(lv_event_t* e);
 
 struct ina226_ui_t ina226_ui;
-
-void ina226_page_init(lv_obj_t* parent)
-{
-    /* Screen 根样式 */
-    static lv_style_t style_root;
-    lv_style_init(&style_root);
-    lv_style_set_bg_color(&style_root, lv_color_black());
-    lv_style_set_bg_opa(&style_root, LV_OPA_100);
-    lv_style_set_size(&style_root, lv_pct(100), lv_pct(100));
-
-    /*
-     * 2列，3行 Grid 容器
-     */
-    static int32_t col_dsc[] = {
-        LV_GRID_FR(2),
-        LV_GRID_FR(1),
-        LV_GRID_TEMPLATE_LAST,
-    };
-    static int32_t row_dsc[] = {
-        LV_GRID_CONTENT,
-        LV_GRID_CONTENT,
-        LV_GRID_FR(1),
-        LV_GRID_TEMPLATE_LAST,
-    };
-
-    lv_obj_set_grid_dsc_array(parent, col_dsc, row_dsc);
-    lv_obj_set_style_pad_row(parent, 10, 0);
-    lv_obj_set_style_pad_column(parent, 10, 0);
-
-    /* 给根容器 设置样式 */
-    lv_obj_add_style(parent, &style_root, LV_STATE_DEFAULT);
-
-    // page_header(parent, "INA226 电压、电流、功率测量");
-    ui_header_create(parent, "INA226 功率测量", LV_SYMBOL_BARS, more_handle, NULL);
-    // lv_group_add_obj(g, btn);
-
-    main_cont(parent);
-
-    current_spinbox(parent);
-}
 
 void page_ina226_update_number(struct ina226_value_t values)
 {
@@ -107,7 +63,14 @@ void main_cont(lv_obj_t* parent)
     /* 创建一个容器 */
     lv_obj_t* left = lv_obj_create(parent);
     lv_obj_remove_style_all(left);
-    lv_obj_set_grid_cell(left, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+    lv_obj_set_grid_cell(left,                  /* 父容器 */
+                         LV_GRID_ALIGN_STRETCH, /* column 对齐 */
+                         0,                     /* 列 pos */
+                         1,                     /* 列 col_span */
+                         LV_GRID_ALIGN_STRETCH, /* 行对齐 */
+                         0,                     /* 行 pos */
+                         1                      /* 行 row_span */
+    );
     lv_obj_set_layout(left, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(left, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(left, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -134,7 +97,7 @@ void main_cont(lv_obj_t* parent)
     /* 右侧：放启动按钮 */
     lv_obj_t* right = lv_obj_create(parent);
     lv_obj_remove_style_all(right);
-    lv_obj_set_grid_cell(right, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+    lv_obj_set_grid_cell(right, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
     border_style_apply(right);
     lv_obj_set_height(right, LV_SIZE_CONTENT);
     lv_obj_set_style_pad_all(right, 8, 0);
@@ -162,16 +125,28 @@ void main_cont(lv_obj_t* parent)
  *************************************************************************************************/
 static void current_spinbox(lv_obj_t* parent)
 {
-    // lv_obj_update_layout(parent);
     static lv_style_t cont_style;
-    lv_style_init(&cont_style);
-    lv_style_set_layout(&cont_style, LV_LAYOUT_FLEX);
-    lv_style_set_flex_flow(&cont_style, LV_FLEX_FLOW_ROW);
-    lv_style_set_pad_all(&cont_style, 4);
+    static bool cont_style_inited = false;
+
+    if (!cont_style_inited)
+    {
+        lv_style_init(&cont_style);
+        lv_style_set_layout(&cont_style, LV_LAYOUT_FLEX);
+        lv_style_set_flex_flow(&cont_style, LV_FLEX_FLOW_ROW);
+        lv_style_set_pad_all(&cont_style, 4);
+        cont_style_inited = true;
+    }
 
     lv_obj_t* cont = lv_obj_create(parent);
     lv_obj_remove_style_all(cont);
-    lv_obj_set_grid_cell(cont, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_STRETCH, 2, 1);
+    lv_obj_set_grid_cell(cont,                  /* 父容器 */
+                         LV_GRID_ALIGN_STRETCH, /* 列对齐 */
+                         0,                     /* 列 pos */
+                         2,                     /* 列 col_span */
+                         LV_GRID_ALIGN_STRETCH, /* 行对齐 */
+                         1,                     /* 行 pos */
+                         1                      /* 行 row_span */
+    );
 
     lv_obj_add_style(cont, &cont_style, 0);
     lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -239,7 +214,48 @@ static void toggle_btn_event_cb(lv_event_t* e)
     }
 }
 
-static void more_handle(lv_event_t* e)
+void build_page_ina226(lv_obj_t* page, lv_group_t* group)
 {
-    LV_LOG_USER("more");
+    /* Screen 根样式 */
+    static lv_style_t style_root;
+    static bool style_root_inited = false;
+    if (!style_root_inited)
+    {
+        lv_style_init(&style_root);
+        lv_style_set_bg_color(&style_root, lv_color_black());
+        lv_style_set_bg_opa(&style_root, LV_OPA_100);
+        lv_style_set_size(&style_root, lv_pct(100), lv_pct(100));
+        lv_style_set_pad_all(&style_root, 4);
+        style_root_inited = true;
+    }
+
+    /*
+     * 2列，2行 Grid 容器
+     */
+    static int32_t col_dsc[] = {
+        LV_GRID_FR(2),
+        LV_GRID_FR(1),
+        LV_GRID_TEMPLATE_LAST,
+    };
+    static int32_t row_dsc[] = {
+        LV_GRID_CONTENT,
+        LV_GRID_FR(1),
+        LV_GRID_TEMPLATE_LAST,
+    };
+
+    lv_obj_set_grid_dsc_array(page, col_dsc, row_dsc);
+    lv_obj_set_style_pad_row(page, 4, 0);
+    lv_obj_set_style_pad_column(page, 4, 0);
+
+    /* 给根容器 设置样式 */
+    lv_obj_add_style(page, &style_root, LV_STATE_DEFAULT);
+
+    main_cont(page);
+
+    current_spinbox(page);
+    if (ina226_ui.btn_start)
+        lv_group_add_obj(group, ina226_ui.btn_start);
+
+    if (ina226_ui.current_spinbox)
+        lv_group_add_obj(group, ina226_ui.current_spinbox);
 }

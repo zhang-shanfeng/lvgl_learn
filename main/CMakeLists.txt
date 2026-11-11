@@ -16,18 +16,18 @@ set(app_srcs
     "fonts/smiley_sans_oblique_24_4bpp.c"
     "utility.cpp"
     "ui/ui_widgets.c"
-    "pages/page_ina226.c"
-    "pages/page_home.c"
+    "ui/page_ina226.c"
+    "ui/page_home.c"
     "buzzer.c"
-    "pages/page_settings.c"
-    "pages/page_more.c"
+    "ui/ui.c"
+    "ui/page_list.c"
+    "ui/page_pwm.c"
 )
 
 set(includes 
     "."
     "fonts"
     "ui"
-    "pages"
 )
 
 idf_component_register(SRCS ${app_srcs}

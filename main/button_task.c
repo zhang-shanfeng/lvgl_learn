@@ -19,6 +19,7 @@
 #include "freertos/semphr.h"
 #include "iot_button.h"
 #include "lvgl_app.h"
+#include "ui.h"
 
 static const char* TAG = "button_task";
 uint32_t g_current_lv_key = 0;
