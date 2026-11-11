@@ -78,6 +78,13 @@ static void create_header(lv_obj_t* parent)
     lv_obj_set_style_text_color(more_label, lv_color_hex(0xE65100), LV_PART_MAIN | LV_STATE_PRESSED);
 }
 
+/**************************************************************************************************
+ * @brief 创建内容区容器
+ *
+ * @note 备注
+ * @param parent
+ * @date 2026-11-11
+ *************************************************************************************************/
 static void create_content_area(lv_obj_t* parent)
 {
     ui.content_area = lv_obj_create(parent);

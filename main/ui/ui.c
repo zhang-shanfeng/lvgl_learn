@@ -17,7 +17,7 @@ const page_builder_t page_builders[PAGE_COUNT] = {
 };
 
 /**************************************************************************************************
- * @brief 根据页面 ID 切换页面
+ * @brief 根据页面 ID 切换页面，只是操控控件的 hidden 属性来实现
  *
  * @note 备注
  * @param id
@@ -40,8 +40,6 @@ void ui_show_page(enum page_id_t id)
         }
     }
 
-    ui.current_page = id; /* 更新当前页面 */
-
     /* 更新标题栏右侧更多按钮是否显示 */
     if (id == PAGE_LIST)
     {
@@ -59,14 +57,26 @@ void ui_show_page(enum page_id_t id)
     if (ui.indev)
     {
         lv_indev_set_group(ui.indev, ui.groups[id]);
-
+        lv_obj_t* obj = NULL;
         /* 关键：组绑定后，把焦点设到组内第一个对象 */
-        lv_obj_t* first = lv_obj_get_child(ui.pages[id], 0);
-        if (first)
+        if (id == PAGE_LIST)
         {
-            lv_group_focus_obj(first);
+            /* 使聚焦点保持在上一个功能页列表项(索引是从0开始的，又因为功能页是从1开始的，所以需要用 ui.current_page-1
+             * 作为获取功能页列表聚焦的索引 ) */
+            obj = lv_obj_get_child(ui.pages[id], ui.current_page - 1);
+        }
+        else
+        {
+            obj = lv_obj_get_child(ui.pages[id], 0);
+        }
+
+        if (obj)
+        {
+            lv_group_focus_obj(obj);
         }
     }
+
+    ui.current_page = id; /* 更新当前页面 */
 }
 
 void ui_show_list_page(void)
