@@ -20,8 +20,8 @@ static const char* TAG = "buzzer";
 static volatile bool s_enabled = true; /* 蜂鸣器总开关，默认开启 */
 
 /* ---- 创建 esp_timer 句柄 ----*/
-static esp_timer_handle_t s_off_timer = NULL;   /* ESP定时器句柄 */
-static esp_timer_handle_t s_alarm_timer = NULL; /* ESP 定时器句柄 */
+static esp_timer_handle_t s_off_timer = NULL;   /* 用于单次蜂鸣器响声的 ESP 定时器句柄  */
+static esp_timer_handle_t s_alarm_timer = NULL; /* 用于循环报警的 ESP 定时器句柄  */
 
 static volatile bool s_alarm_active = false;   /* 是否处于报警状态 */
 static volatile bool s_alarm_phase_on = false; /* true=当处于响相位 */
@@ -33,6 +33,8 @@ static SemaphoreHandle_t s_lock = NULL; /* 互斥量句柄 */
 
 static void buzzer_start(void);
 static void buzzer_stop(void);
+static void stop_alarm_internal(void);
+static esp_err_t start_with_timeout_internal(uint64_t duration_us);
 
 /**************************************************************************************************
  * @brief 获取锁
@@ -41,7 +43,10 @@ static void buzzer_stop(void);
  *************************************************************************************************/
 static inline void buzzer_lock(void)
 {
-    if (s_lock) { xSemaphoreTake(s_lock, portMAX_DELAY); }
+    if (s_lock)
+    {
+        xSemaphoreTake(s_lock, portMAX_DELAY);
+    }
 }
 
 /**************************************************************************************************
@@ -51,7 +56,10 @@ static inline void buzzer_lock(void)
  *************************************************************************************************/
 static inline void buzzer_unlock(void)
 {
-    if (s_lock) { xSemaphoreGive(s_lock); }
+    if (s_lock)
+    {
+        xSemaphoreGive(s_lock);
+    }
 }
 
 /**************************************************************************************************
@@ -65,7 +73,8 @@ static esp_err_t buzzer_nvs_load(bool* enabled)
 {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(BUZZER_NVS_NAMESPACE, NVS_READWRITE, &handle);
-    if (err != ESP_OK) return err;
+    if (err != ESP_OK)
+        return err;
 
     uint8_t val = 1; /* 默认开启 */
     err = nvs_get_u8(handle, BUZZER_NVS_KEY_ENABLE, &val);
@@ -78,7 +87,10 @@ static esp_err_t buzzer_nvs_load(bool* enabled)
     }
     nvs_close(handle);
 
-    if (err == ESP_OK) { *enabled = (val != 0); }
+    if (err == ESP_OK)
+    {
+        *enabled = (val != 0);
+    }
     return err;
 }
 
@@ -93,10 +105,14 @@ static esp_err_t buzzer_nvs_save(bool enabled)
 {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(BUZZER_NVS_NAMESPACE, NVS_READWRITE, &handle);
-    if (err != ESP_OK) return err;
+    if (err != ESP_OK)
+        return err;
 
     err = nvs_set_u8(handle, BUZZER_NVS_KEY_ENABLE, enabled ? 1 : 0);
-    if (err == ESP_OK) { err = nvs_commit(handle); }
+    if (err == ESP_OK)
+    {
+        err = nvs_commit(handle);
+    }
     nvs_close(handle);
     return err;
 }
@@ -145,39 +161,18 @@ static void alarm_timer_cb(void* arg)
 }
 
 /**************************************************************************************************
- * @brief 关闭报警定时器，停止报警
- *
- * @date 2026-10-31
- *************************************************************************************************/
-static void stop_alarm_internal(void)
-{
-    s_alarm_active = false; /* 先置标志 */
-    s_alarm_phase_on = false;
-
-    if (s_alarm_timer && esp_timer_is_active(s_alarm_timer))
-    {
-        esp_timer_stop(s_alarm_timer);
-    }
-
-    /* 应对“回调恰好在 stop 前后重启了自己”的极小窗口 */
-    if (s_alarm_timer && esp_timer_is_active(s_alarm_timer))
-    {
-        esp_timer_stop(s_alarm_timer);
-    }
-    buzzer_stop();
-}
-
-/**************************************************************************************************
  * @brief 开启超时定时，内部函数
- *
+ * 这个函数实现的就是打开蜂鸣器响，并开启一次性定时器，定时器定时时间到了后执行 `off_timer_cb` 回调函数来关闭蜂鸣器
  * @param duration_us
  * @return esp_err_t
  * @date 2026-10-31
  *************************************************************************************************/
 static esp_err_t start_with_timeout_internal(uint64_t duration_us)
 {
-    if (duration_us == 0) return ESP_ERR_INVALID_ARG;
-    if (!s_off_timer) return ESP_ERR_INVALID_STATE;
+    if (duration_us == 0)
+        return ESP_ERR_INVALID_ARG;
+    if (!s_off_timer)
+        return ESP_ERR_INVALID_STATE;
 
     stop_alarm_internal(); /* 提示音打断报警 */
 
@@ -188,7 +183,10 @@ static esp_err_t start_with_timeout_internal(uint64_t duration_us)
 
     buzzer_start();
     esp_err_t err = esp_timer_start_once(s_off_timer, duration_us);
-    if (err != ESP_OK) { buzzer_stop(); }
+    if (err != ESP_OK) /* 如果创建失败则关闭蜂鸣器 */
+    {
+        buzzer_stop();
+    }
     return err;
 }
 
@@ -212,60 +210,83 @@ esp_err_t buzzer_init(void)
     gpio_config(&buzzer_config);
     gpio_set_level(BUZZER_IO, 0);
 
-    if (s_lock) return ESP_OK; /* 互斥锁已经初始化 */
+    if (s_lock)
+        return ESP_OK; /* 互斥锁已经初始化 */
 
     /* 创建静态互斥信号量 */
     s_lock = xSemaphoreCreateMutexStatic(&s_lock_buf);
-    if (!s_lock) return ESP_ERR_NO_MEM;
+    if (!s_lock)
+        return ESP_ERR_NO_MEM;
 
     const esp_timer_create_args_t off_args = {
         .callback = &off_timer_cb,
         .name = "buzzer_off",
     };
-    ESP_RETURN_ON_ERROR(esp_timer_create(&off_args, &s_off_timer),
-                        TAG,
-                        "create off timer failed");
+    ESP_RETURN_ON_ERROR(esp_timer_create(&off_args, &s_off_timer), TAG, "create off timer failed");
 
     const esp_timer_create_args_t alarm_args = {
         .callback = &alarm_timer_cb,
         .name = "buzzer_alarm",
     };
-    ESP_RETURN_ON_ERROR(esp_timer_create(&alarm_args, &s_alarm_timer),
-                        TAG,
-                        "create alarm timer failed");
+    ESP_RETURN_ON_ERROR(esp_timer_create(&alarm_args, &s_alarm_timer), TAG, "create alarm timer failed");
     return ESP_OK;
 }
 
-static void buzzer_start(void) { gpio_set_level(BUZZER_IO, 1); }
-static void buzzer_stop(void) { gpio_set_level(BUZZER_IO, 0); }
+/**************************************************************************************************
+ * @brief 开启蜂鸣器
+ *
+ * @note 内部调用 gpio_set_level
+ * @date 2026-11-12
+ *************************************************************************************************/
+static void buzzer_start(void)
+{
+    gpio_set_level(BUZZER_IO, 1);
+}
+
+/**************************************************************************************************
+ * @brief 关闭蜂鸣器
+ *
+ * @note 内部调用 gpio_set_level
+ * @date 2026-11-12
+ *************************************************************************************************/
+static void buzzer_stop(void)
+{
+    gpio_set_level(BUZZER_IO, 0);
+}
 
 /**************************************************************************************************
  * @brief 设置总开关的状态
  *
- * @note 备注
+ * @note 用于控制是否使能 Buzzer 功能，禁能后将全面关闭蜂鸣器
  * @param enabled true: 开启, false: 关闭
  * @date 2026-10-31
  *************************************************************************************************/
 void buzzer_set_enabled(bool enabled)
 {
-    if (!enabled) { buzzer_stop_all(); }
+    if (!enabled)
+    {
+        buzzer_stop_all(); /* 确保关闭蜂鸣器 */
+    }
     s_enabled = enabled;
 }
 
 /**************************************************************************************************
  * @brief 返回总开关的状态
  *
- * @note 备注
+ * @note 直接返回全局的 s_enabled
  * @return true
  * @return false
  * @date 2026-10-31
  *************************************************************************************************/
-bool buzzer_is_enabled(void) { return s_enabled; }
+bool buzzer_is_enabled(void)
+{
+    return s_enabled;
+}
 
 /**************************************************************************************************
  * @brief 启动单次蜂鸣器发声
  *
- * @note 备注
+ * @note 加入了全局总开关变量 s_enabled 的使用，只有总开关为开时才能调用 start_with_timeout_internal() 函数
  * @param duration_us
  * @return
  * - ESP_OK 代表启动成功
@@ -273,8 +294,10 @@ bool buzzer_is_enabled(void) { return s_enabled; }
  *************************************************************************************************/
 esp_err_t buzzer_start_with_timeout(uint64_t duration_us)
 {
-    if (!s_enabled) return ESP_OK; /* 总开关关闭，静默忽略 */
-    if (!s_lock) return ESP_ERR_INVALID_STATE; /* 未 init */
+    if (!s_enabled)
+        return ESP_OK; /* 总开关关闭，静默忽略 */
+    if (!s_lock)
+        return ESP_ERR_INVALID_STATE; /* 未 init */
 
     buzzer_lock();
     esp_err_t err = start_with_timeout_internal(duration_us);
@@ -284,9 +307,27 @@ esp_err_t buzzer_start_with_timeout(uint64_t duration_us)
 }
 
 /**************************************************************************************************
+ * @brief 关闭报警定时器，停止报警
+ *
+ * @date 2026-10-31
+ *************************************************************************************************/
+static void stop_alarm_internal(void)
+{
+    s_alarm_active = false; /* 先置标志 */
+    s_alarm_phase_on = false;
+
+    /* 应对“回调恰好在 stop 前后重启了自己”的极小窗口 */
+    if (s_alarm_timer && esp_timer_is_active(s_alarm_timer))
+    {
+        esp_timer_stop(s_alarm_timer);
+    }
+    buzzer_stop();
+}
+
+/**************************************************************************************************
  * @brief 开始报警
  *
- * @note 备注
+ * @note
  * @param on_ms
  * @param off_ms
  * @return
@@ -295,16 +336,22 @@ esp_err_t buzzer_start_with_timeout(uint64_t duration_us)
  *************************************************************************************************/
 esp_err_t buzzer_start_alarm(uint32_t on_ms, uint32_t off_ms)
 {
-    if (!s_enabled) return ESP_OK; /* 总开关关闭：静默忽略 */
-    if (!s_lock || !s_alarm_timer) return ESP_ERR_INVALID_STATE;
-    if (on_ms == 0 || off_ms == 0) return ESP_ERR_INVALID_ARG;
+    if (!s_enabled)
+        return ESP_OK; /* 总开关关闭：静默忽略 */
+    if (!s_lock || !s_alarm_timer)
+        return ESP_ERR_INVALID_STATE;
+    if (on_ms == 0 || off_ms == 0)
+        return ESP_ERR_INVALID_ARG;
 
     buzzer_lock();
 
     /* 先停掉旧的报警和单次提示音，保证从“响”相位重新开始 */
     stop_alarm_internal();
     /* 如果单次提示音定时器处于有效工作状态，则停止 s_off_timer */
-    if (esp_timer_is_active(s_off_timer)) { esp_timer_stop(s_off_timer); }
+    if (esp_timer_is_active(s_off_timer))
+    {
+        esp_timer_stop(s_off_timer);
+    }
 
     s_alarm_on_ms = on_ms;
     s_alarm_off_ms = off_ms;
@@ -313,8 +360,7 @@ esp_err_t buzzer_start_alarm(uint32_t on_ms, uint32_t off_ms)
 
     /* ---- 开启蜂鸣器，并开启 s_alarm_timer 定时器（单次模式） ---- */
     buzzer_start();
-    esp_err_t err =
-        esp_timer_start_once(s_alarm_timer, (uint64_t)on_ms * 1000ULL);
+    esp_err_t err = esp_timer_start_once(s_alarm_timer, (uint64_t)on_ms * 1000ULL);
     if (err != ESP_OK)
     {
         s_alarm_active = false;
@@ -332,7 +378,8 @@ esp_err_t buzzer_start_alarm(uint32_t on_ms, uint32_t off_ms)
  *************************************************************************************************/
 void buzzer_stop_alarm(void)
 {
-    if (!s_lock) return;
+    if (!s_lock)
+        return;
     buzzer_lock();
     stop_alarm_internal();
     buzzer_unlock();
@@ -366,4 +413,7 @@ void buzzer_stop_all(void)
  *
  * @date 2026-10-31
  *************************************************************************************************/
-void buzzer_on_any_key(void) { buzzer_stop_alarm(); }
+void buzzer_on_any_key(void)
+{
+    buzzer_stop_alarm();
+}
