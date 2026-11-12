@@ -89,7 +89,9 @@ static void button_event_cb(void* arg, void* usr_data)
     {
         xSemaphoreTake(g_key_mutex, portMAX_DELAY);
         g_current_lv_key = lv_key;
-        // buzzer_start_with_timeout(1000 * 50);
+
+        buzzer_start_with_timeout(1000 * 50);
+
         xSemaphoreGive(g_key_mutex);
     }
     else if (event == BUTTON_PRESS_UP || event == BUTTON_PRESS_END)

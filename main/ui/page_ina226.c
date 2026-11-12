@@ -1,8 +1,10 @@
 #include "page_ina226.h"
 
+#include "buzzer.h"
 #include "custom_fonts.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
+#include "ina226_task.h"
 #include "lvgl_app.h"
 #include "ui.h"
 #include "ui_styles.h"
@@ -14,6 +16,7 @@ static struct ui_kv_row_cfg_t make_ina226_kv_cfg(const char* title, const char* 
 
 static void main_cont(lv_obj_t* parent);
 static void current_spinbox(lv_obj_t* parent);
+float real_current_max_value;
 
 /* 事件函数 */
 static void toggle_btn_event_cb(lv_event_t* e);
@@ -176,9 +179,8 @@ static void spinbox_event_handler(lv_event_t* e)
     if (code == LV_EVENT_VALUE_CHANGED)
     {
         int32_t raw_value = lv_spinbox_get_value(spinbox);
-        float real_value = (float)raw_value / 1000.0f;
-        current_alert_value_set(&ina, real_value);
-        ESP_LOGE(TAG, "real_value: %f", real_value);
+        real_current_max_value = (float)raw_value / 1000.0f;
+        current_alert_value_set(&ina, real_current_max_value);
     }
 
     if (code == LV_EVENT_CLICKED)

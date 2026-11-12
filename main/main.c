@@ -17,7 +17,7 @@ static const char *TAG = "gpio_button_example";
 
 void app_main(void)
 {
-    // buzzer_init();
+    buzzer_init();
     button_task_init();
 
     lvgl_app_init();

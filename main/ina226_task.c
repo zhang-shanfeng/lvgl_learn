@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "buzzer.h"
 #include "driver/i2c_master.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -37,6 +38,9 @@ static const char *TAG = "ina226";
 /* A0,A1 引脚接到 3.3V */
 #define INA226_I2C_ADDR 0x40
 ina226_device_t ina;
+struct ina226_value_t ina226_values;
+
+extern float real_current_max_value;
 
 static const i2c_master_bus_config_t i2c_bus_config = {
     .i2c_port = I2C_NUM_0,
@@ -68,8 +72,7 @@ void ina226_task(void *pvParameters)
     i2c_master_bus_handle_t i2c_bus;
 
     ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_config, &i2c_bus));
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(
-        i2c_bus, &ina226_i2c_config, &ina226_config.i2c_dev));
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(i2c_bus, &ina226_i2c_config, &ina226_config.i2c_dev));
 
     /* Setup INA226 device. */
     // ESP_ERROR_CHECK(ina226_init(&ina, &ina226_config));
@@ -78,7 +81,10 @@ void ina226_task(void *pvParameters)
     for (uint8_t addr = 0x03; addr < 0x78; addr++)
     {
         esp_err_t ret = i2c_master_probe(i2c_bus, addr, 100);
-        if (ret == ESP_OK) { ESP_LOGI(TAG, "Found device at 0x%02X", addr); }
+        if (ret == ESP_OK)
+        {
+            ESP_LOGI(TAG, "Found device at 0x%02X", addr);
+        }
     }
     ESP_LOGI(TAG, "Scan done");
 
@@ -98,7 +104,6 @@ void ina226_task(void *pvParameters)
 
     // current_alert_value_set(&ina, 0.015);
 
-    struct ina226_value_t ina226_values;
     while (1)
     {
         vTaskDelay(pdMS_TO_TICKS(200));
@@ -128,18 +133,18 @@ void ina226_task(void *pvParameters)
         // }
         ina226_values.power = ina226_values.voltage * ina226_values.current;
 
-        if (ina226_values.voltage > 1.0f && ina226_values.current == 0.0f &&
-            ina226_values.power == 0.0f)
+        if (ina226_values.voltage > 1.0f && ina226_values.current == 0.0f && ina226_values.power == 0.0f)
         {
             // 连续几次都这样，就重新初始化
             ina226_init(&ina, &ina226_config);
         }
 
+        if (ina226_values.current >= real_current_max_value)
+        {
+            buzzer_start_alarm(150, 100);
+        }
         // 打印结果
-        ESP_LOGI(TAG,
-                 "电压: %.3f V | 电流: %.3f A | 功率: %.3f W",
-                 ina226_values.voltage,
-                 ina226_values.current,
+        ESP_LOGI(TAG, "电压: %.3f V | 电流: %.3f A | 功率: %.3f W", ina226_values.voltage, ina226_values.current,
                  ina226_values.power);
 
         page_ina226_update_number(ina226_values);
@@ -152,8 +157,7 @@ void voltage_alert_value_set(ina226_device_t *device, const float alert_value)
     ina226_set_bus_voltage_alert_limit(device, alert_value);
 }
 
-void current_alert_value_set(ina226_device_t *device,
-                             const float alert_current_a)
+void current_alert_value_set(ina226_device_t *device, const float alert_current_a)
 {
     // INA226 没有独立的电流超限报警位，电流报警复用分流电压超限(SOL)
     ina226_set_alert_mask(device, INA226_ALERT_SHUNT_OVER_VOLTAGE);
