@@ -17,14 +17,14 @@ void build_page_list(lv_obj_t *page, lv_group_t *group)
 {
     lv_obj_set_style_bg_color(page, lv_color_hex(BODY_BG_COLOR), 0);
     lv_obj_set_style_bg_opa(page, LV_OPA_COVER, 0);
-    lv_obj_set_style_pad_all(page, 4, 0);
+    // lv_obj_set_style_pad_all(page, 4, 0);
     lv_obj_set_style_pad_row(page, 8, 0);
 
     static const char *names[PAGE_COUNT] = {"List", "Home", "INA226", "PWM", "Settings"};
 
     flex_list_styles_init();
     lv_obj_t *list = flex_list_create(page);
-    lv_obj_set_size(list, lv_pct(80), lv_pct(100));
+    lv_obj_set_size(list, lv_pct(60), lv_pct(100));
     lv_obj_center(list);
 
     flex_list_add_header(list, "Function");

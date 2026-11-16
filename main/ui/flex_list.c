@@ -1,5 +1,6 @@
 #include "flex_list.h"
 
+#include "color.h"
 #include "custom_fonts.h"
 
 static lv_style_t style_list;
@@ -33,27 +34,30 @@ void flex_list_styles_init(void)
     lv_style_set_pad_ver(&style_list, 0);
     lv_style_set_pad_gap(&style_list, 0);
     lv_style_set_clip_corner(&style_list, true);
-    lv_style_set_pad_row(&style_list, 4);
+    // lv_style_set_pad_row(&style_list, 4);
+    lv_style_set_border_width(&style_list, 0);
+    lv_style_set_bg_color(&style_list, lv_color_hex(LIST_BODY_BG_COLOR));
 
     /* 分组标题 */
     lv_style_init(&style_header);
     lv_style_set_bg_opa(&style_header, LV_OPA_COVER);
-    lv_style_set_bg_color(&style_header, lv_palette_lighten(LV_PALETTE_GREY, 2));
-    lv_style_set_text_color(&style_header, lv_palette_darken(LV_PALETTE_GREY, 4));
+    lv_style_set_bg_color(&style_header, lv_color_hex(LIST_HEADER_BG_COLOR));
+    lv_style_set_pad_all(&style_header, 4);
+    lv_style_set_margin_bottom(&style_header, 4);
+    lv_style_set_text_color(&style_header, lv_color_white());
     lv_style_set_transform_width(&style_header, 16);
-    lv_style_set_text_font(&style_header, &ibm_plex_mono_medium_16_2bpp);
+    lv_style_set_text_font(&style_header, &ibm_plex_mono_medium_18_2bpp);
+    lv_style_set_align(&style_header, LV_ALIGN_CENTER);
 
     /* 按钮 */
     lv_style_init(&style_button);
     lv_style_set_radius(&style_button, 0);
     lv_style_set_shadow_width(&style_button, 0);
     lv_style_set_bg_opa(&style_button, LV_OPA_COVER);
-    lv_style_set_bg_color(&style_button, lv_color_white());
-    lv_style_set_text_color(&style_button, lv_palette_darken(LV_PALETTE_GREY, 4));
-    lv_style_set_border_width(&style_button, 1);
-    lv_style_set_border_color(&style_button, lv_palette_lighten(LV_PALETTE_GREY, 2));
-    lv_style_set_border_side(&style_button, LV_BORDER_SIDE_BOTTOM);
-    lv_style_set_pad_all(&style_button, 8);
+    lv_style_set_bg_color(&style_button, lv_color_hex(LIST_BODY_BG_COLOR));
+    lv_style_set_text_color(&style_button, lv_color_hex(LIST_TEXT_COLOR));
+    lv_style_set_border_width(&style_button, 0);
+    lv_style_set_pad_all(&style_button, 4);
     lv_style_set_pad_column(&style_button, 8);
 
     /* 按下反馈 */
@@ -64,9 +68,9 @@ void flex_list_styles_init(void)
     /* 聚焦反馈：背景色反转，不依赖 outline */
     lv_style_init(&style_button_focused);
     lv_style_set_outline_width(&style_button_focused, 0);
-    lv_style_set_bg_color(&style_button_focused, lv_palette_darken(LV_PALETTE_GREY, 1));
-    lv_style_set_text_color(&style_button_focused, lv_color_white());
-    lv_style_set_border_color(&style_button_focused, lv_palette_darken(LV_PALETTE_GREY, 1));
+    lv_style_set_bg_color(&style_button_focused, lv_color_hex(LIST_FOCUSED_BG_COLOR));
+    lv_style_set_bg_opa(&style_button_focused, LV_OPA_30);
+    lv_style_set_text_color(&style_button_focused, lv_color_hex(LIST_FOCUSED_TEXT_COLOR));
     lv_style_set_outline_width(&style_button_focused, 0);
     lv_style_set_border_width(&style_button_focused, 0);
 }
@@ -84,6 +88,7 @@ lv_obj_t* flex_list_add_header(lv_obj_t* list, const char* txt)
 {
     lv_obj_t* label = lv_label_create(list);
     lv_obj_set_width(label, lv_pct(100));
+    lv_obj_set_height(label, 30);
     lv_obj_add_style(label, &style_header, 0);
     lv_label_set_text(label, txt);
     return label;
@@ -93,6 +98,7 @@ lv_obj_t* flex_list_add_button(lv_obj_t* list, const void* icon, const char* txt
 {
     lv_obj_t* btn = lv_button_create(list);
     lv_obj_set_size(btn, lv_pct(100), LV_SIZE_CONTENT);
+
     lv_obj_set_flex_flow(btn, LV_FLEX_FLOW_ROW);
     lv_obj_add_style(btn, &style_button, 0);
     lv_obj_add_style(btn, &style_button_pressed, LV_STATE_PRESSED);
@@ -108,7 +114,7 @@ lv_obj_t* flex_list_add_button(lv_obj_t* list, const void* icon, const char* txt
     if (txt)
     {
         lv_obj_t* label = lv_label_create(btn);
-        lv_obj_set_style_text_font(label, &ibm_plex_mono_medium_16_2bpp, 0);
+        lv_obj_set_style_text_font(label, &ibm_plex_mono_medium_18_2bpp, 0);
         lv_label_set_text(label, txt);
         lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
         lv_obj_set_flex_grow(label, 1);
