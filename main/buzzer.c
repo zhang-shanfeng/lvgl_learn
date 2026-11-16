@@ -69,8 +69,13 @@ static inline void buzzer_unlock(void)
  * @return esp_err_t
  * @date 2026-10-31
  *************************************************************************************************/
-static esp_err_t buzzer_nvs_load(bool* enabled)
+esp_err_t buzzer_nvs_load(bool* enabled)
 {
+    if (enabled == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     nvs_handle_t handle;
     esp_err_t err = nvs_open(BUZZER_NVS_NAMESPACE, NVS_READWRITE, &handle);
     if (err != ESP_OK)
@@ -81,7 +86,7 @@ static esp_err_t buzzer_nvs_load(bool* enabled)
     if (err == ESP_ERR_NVS_NOT_FOUND)
     {
         /* 首次上电，尚未保存过，保持默认 true 并写入初始值 */
-        nvs_set_u8(handle, BUZZER_NVS_KEY_ENABLE, val);
+        err = nvs_set_u8(handle, BUZZER_NVS_KEY_ENABLE, val);
         nvs_commit(handle);
         err = ESP_OK;
     }
@@ -95,13 +100,13 @@ static esp_err_t buzzer_nvs_load(bool* enabled)
 }
 
 /**************************************************************************************************
- * @brief NVS 报错函数
+ * @brief NVS 保存函数
  *
  * @param enabled
  * @return esp_err_t
  * @date 2026-10-31
  *************************************************************************************************/
-static esp_err_t buzzer_nvs_save(bool enabled)
+esp_err_t buzzer_nvs_save(bool enabled)
 {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(BUZZER_NVS_NAMESPACE, NVS_READWRITE, &handle);

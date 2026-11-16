@@ -13,3 +13,5 @@ void buzzer_stop_all(void);
 esp_err_t buzzer_start_alarm(uint32_t on_ms, uint32_t off_ms);
 void buzzer_stop_alarm(void);
 void buzzer_on_any_key(void);
+esp_err_t buzzer_nvs_load(bool* enabled);
+esp_err_t buzzer_nvs_save(bool enabled);
