@@ -5,6 +5,7 @@
  */
 #include "button_task.h"
 #include "buzzer.h"
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -19,6 +20,13 @@ static const char *TAG = "gpio_button_example";
 
 void app_main(void)
 {
+    multi_heap_info_t info;
+    heap_caps_get_info(&info, MALLOC_CAP_INTERNAL);
+    printf("Internal free: %d, largest block: %d\n", info.total_free_bytes, info.largest_free_block);
+
+    heap_caps_get_info(&info, MALLOC_CAP_SPIRAM);
+    printf("PSRAM free: %d, largest block: %d\n", info.total_free_bytes, info.largest_free_block);
+
     esp_err_t err;
 
     // === 步骤1：初始化 NVS ===
@@ -49,6 +57,12 @@ void app_main(void)
     xTaskCreatePinnedToCore(ina226_task, "ina226_task", 4096, NULL, 0, NULL, 1);
 
     lvgl_app_init();
+
+    heap_caps_get_info(&info, MALLOC_CAP_INTERNAL);
+    printf("Internal free: %d, largest block: %d\n", info.total_free_bytes, info.largest_free_block);
+
+    heap_caps_get_info(&info, MALLOC_CAP_SPIRAM);
+    printf("PSRAM free: %d, largest block: %d\n", info.total_free_bytes, info.largest_free_block);
 
     while (1)
     {

@@ -1,6 +1,7 @@
 #include "page_ina226.h"
 
 #include "buzzer.h"
+#include "color.h"
 #include "custom_fonts.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
@@ -230,10 +231,10 @@ void build_page_ina226(lv_obj_t* page, lv_group_t* group)
     if (!style_root_inited)
     {
         lv_style_init(&style_root);
-        lv_style_set_bg_color(&style_root, lv_color_black());
+        lv_style_set_bg_color(&style_root, lv_color_hex(BODY_BG_COLOR));
         lv_style_set_bg_opa(&style_root, LV_OPA_100);
         lv_style_set_size(&style_root, lv_pct(100), lv_pct(100));
-        lv_style_set_pad_all(&style_root, 2);
+        lv_style_set_pad_all(&style_root, 0);
         style_root_inited = true;
     }
     /* 给根容器 设置样式 */

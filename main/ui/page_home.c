@@ -1,8 +1,10 @@
 #include "page_home.h"
 
+#include "color.h"
+
 void build_page_home(lv_obj_t *page, lv_group_t *group)
 {
-    lv_obj_set_style_bg_color(page, lv_palette_lighten(LV_PALETTE_BLUE_GREY, 1), 0);
+    lv_obj_set_style_bg_color(page, lv_color_hex(BODY_BG_COLOR), 0);
     lv_obj_set_style_bg_opa(page, LV_OPA_COVER, 0);
 
     lv_obj_t *btn = lv_button_create(page);

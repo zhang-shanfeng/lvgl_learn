@@ -96,6 +96,7 @@ static void create_content_area(lv_obj_t* parent)
     lv_obj_set_flex_grow(ui.content_area, 1);
     lv_obj_set_style_pad_all(ui.content_area, 0, 0);
     lv_obj_set_style_border_width(ui.content_area, 0, 0);
+    lv_obj_set_style_radius(ui.content_area, 0, 0);
     lv_obj_set_scrollbar_mode(ui.content_area, LV_SCROLLBAR_MODE_OFF);
 }
 
@@ -103,6 +104,7 @@ static lv_obj_t* create_page(lv_obj_t* parent, enum page_id_t id)
 {
     lv_obj_t* page = lv_obj_create(parent);
     lv_obj_remove_style_all(page);
+    lv_obj_set_style_pad_all(page, 12, 0);
     lv_obj_set_size(page, lv_pct(100), lv_pct(100));
 
     /* 关键：创建后立即隐藏，如果在调用出才隐藏会导致上电是按钮或其它内容闪烁 */
@@ -154,7 +156,6 @@ void lvgl_app_init(void)
     lv_obj_set_state(page_settings.switch_btn, LV_STATE_CHECKED, buzzer_is_enabled());
 
     float max_current = ina226_task_get_max_current();
-
     lv_spinbox_set_value(ina226_ui.current_spinbox, (int32_t)lroundf(max_current * 1000.0f));
 
     ui_show_page(PAGE_HOME);

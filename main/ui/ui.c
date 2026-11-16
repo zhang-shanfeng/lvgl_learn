@@ -36,27 +36,10 @@ void ui_show_page(enum page_id_t id)
             ui.last_focused[ui.current_page] = focused;
     }
 
-    for (int i = 0; i < PAGE_COUNT; i++)
-    {
-        if (i == id)
-        {
-            lv_obj_set_hidden(ui.pages[i], false);
-        }
-        else
-        {
-            lv_obj_set_hidden(ui.pages[i], true);
-        }
-    }
+    for (int i = 0; i < PAGE_COUNT; i++) lv_obj_set_hidden(ui.pages[i], i != id);
 
     /* 更新标题栏右侧更多按钮是否显示 */
-    if (id == PAGE_LIST)
-    {
-        lv_obj_set_hidden(ui.header_right, true);
-    }
-    else
-    {
-        lv_obj_set_hidden(ui.header_right, false);
-    }
+    lv_obj_set_hidden(ui.header_right, id == PAGE_LIST);
 
     static const char* titles[PAGE_COUNT] = {"List", "Home", "INA226", "PWM", "Settings"};
     lv_label_set_text(ui.title_label, titles[id]);
@@ -65,28 +48,34 @@ void ui_show_page(enum page_id_t id)
     if (ui.indev)
     {
         lv_indev_set_group(ui.indev, ui.groups[id]);
+
         lv_obj_t* obj = NULL;
-        /* 关键：组绑定后，把焦点设到组内第一个对象 */
+
         if (id == PAGE_LIST)
         {
-            /* 使聚焦点保持在上一个功能页列表项(索引是从0开始的，又因为功能页是从1开始的，所以需要用 ui.current_page-1
-             * 作为获取功能页列表聚焦的索引 ) */
-            obj = lv_obj_get_child(ui.pages[id], ui.current_page - 1);
+            /* 回到来自的功能页对应的列表项。注意：
+             * - page 的唯一子对象是 flex list 容器
+             * - list 的第 0 个子对象是 header，不可聚焦，需跳过
+             * - current_page 是 1..PAGE_COUNT-1，对应功能页
+             */
+            lv_obj_t* list = lv_obj_get_child(ui.pages[id], 0);
+            if (list)
+            {
+                /* header 占第 0 个，功能页 i 对应 list 子对象索引 i */
+                obj = lv_obj_get_child(list, ui.current_page);
+            }
         }
         else
         {
-            obj = ui.last_focused[id];
+            if (ui.last_focused[id] && lv_obj_is_valid(ui.last_focused[id]))
+                obj = ui.last_focused[id];
         }
 
         if (!obj)
-        {
             obj = lv_group_get_obj_by_index(ui.groups[id], 0);
-        }
 
         if (obj)
-        {
             lv_group_focus_obj(obj);
-        }
     }
 
     ui.current_page = id; /* 更新当前页面 */

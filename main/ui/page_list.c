@@ -1,5 +1,7 @@
 #include "page_list.h"
 
+#include "color.h"
+#include "flex_list.h"
 #include "ui.h"
 
 static void list_item_cb(lv_event_t *e)
@@ -13,23 +15,24 @@ static void list_item_cb(lv_event_t *e)
 
 void build_page_list(lv_obj_t *page, lv_group_t *group)
 {
-    lv_obj_set_flex_flow(page, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_bg_color(page, lv_color_hex(BODY_BG_COLOR), 0);
+    lv_obj_set_style_bg_opa(page, LV_OPA_COVER, 0);
+    lv_obj_set_style_pad_all(page, 4, 0);
     lv_obj_set_style_pad_row(page, 8, 0);
 
     static const char *names[PAGE_COUNT] = {"List", "Home", "INA226", "PWM", "Settings"};
+
+    flex_list_styles_init();
+    lv_obj_t *list = flex_list_create(page);
+    lv_obj_set_size(list, lv_pct(80), lv_pct(100));
+    lv_obj_center(list);
+
+    flex_list_add_header(list, "Function");
     for (int i = 0; i < PAGE_COUNT; i++)
     {
         if (i == PAGE_LIST)
             continue;
-
-        lv_obj_t *item = lv_button_create(page);
-        lv_obj_set_size(item, LV_PCT(100), 44);
-        lv_obj_add_event_cb(item, list_item_cb, LV_EVENT_CLICKED, (void *)(lv_uintptr_t)i);
-
-        lv_group_add_obj(group, item);
-
-        lv_obj_t *lbl = lv_label_create(item);
-        lv_label_set_text(lbl, names[i]);
-        lv_obj_center(lbl);
+        lv_obj_t *li = flex_list_add_button(list, NULL, names[i], list_item_cb, (void *)(lv_uintptr_t)i);
+        lv_group_add_obj(group, li);
     }
 }
