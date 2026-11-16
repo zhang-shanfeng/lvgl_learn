@@ -2,6 +2,7 @@
 
 #include "color.h"
 #include "custom_fonts.h"
+#include "ui_styles.h"
 
 /**************************************************************************************************
  * @brief 创建一行，内部包括2个 Label，如：电压 1.233V
@@ -216,3 +217,81 @@ void ui_header_create(
 }
 
 #endif
+
+struct ui_kv_row_switch_cfg_t make_row_switch_kv_cfg(const char* title)
+{
+    return (struct ui_kv_row_switch_cfg_t){.width = lv_pct(100),
+                                           .height = LV_SIZE_CONTENT,
+                                           .pad_hor = 6,
+                                           .pad_ver = 6,
+                                           .label =
+                                               {
+                                                   .title = title,
+                                                   .width = LV_SIZE_CONTENT,
+                                                   .height = LV_SIZE_CONTENT,
+                                                   .has_color = true,
+                                                   .color = lv_color_white(),
+                                                   .pad_hor = 0,
+                                                   .pad_ver = 0,
+                                                   .font = &alibaba_puhuiti_regular_24_4bpp,
+                                               },
+                                           .switch_ui = {
+                                               .pad_hor = 0,
+                                               .pad_ver = 0,
+                                               .width = 60,
+                                               .height = 30,
+                                           }};
+}
+
+/**************************************************************************************************
+ * @brief 创建包含 label 和 Switch 的行
+ *
+ * @note 备注
+ * @param parent
+ * @param cfg
+ * @return lv_obj_t*
+ * @date 2026-11-15
+ *************************************************************************************************/
+lv_obj_t* ui_create_kv_row_switch(lv_obj_t* parent, const struct ui_kv_row_switch_cfg_t* cfg)
+{
+    lv_obj_t* cont = lv_obj_create(parent);
+    lv_obj_remove_style_all(cont);
+    lv_obj_set_size(cont, cfg->width, cfg->height);
+    lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+    if (cfg->pad_ver)
+    {
+        lv_obj_set_style_pad_ver(cont, cfg->pad_ver, 0);
+    }
+    if (cfg->pad_hor)
+    {
+        lv_obj_set_style_pad_hor(cont, cfg->pad_hor, 0);
+    }
+
+    lv_obj_t* title = lv_label_create(cont);
+    lv_obj_set_style_text_font(title, cfg->label.font, 0);
+    if (cfg->label.has_color)
+    {
+        lv_obj_set_style_text_color(title, cfg->label.color, 0);
+    }
+    lv_obj_set_size(title, cfg->label.width, cfg->label.height);
+    lv_label_set_text(title, cfg->label.title);
+
+    lv_obj_t* switch_btn = lv_switch_create(cont);
+    lv_obj_set_state(switch_btn, LV_STATE_CHECKED, false);
+    lv_obj_add_style(switch_btn, &style_switch_main, LV_PART_MAIN);
+    lv_obj_add_style(switch_btn, &style_switch_indicator_checked, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    // lv_obj_add_style(switch_btn, &style_switch_knob, LV_PART_KNOB);
+
+    if (cfg->switch_ui.pad_ver)
+    {
+        lv_obj_set_style_pad_ver(switch_btn, cfg->switch_ui.pad_ver, 0);
+    }
+    if (cfg->switch_ui.pad_hor)
+    {
+        lv_obj_set_style_pad_hor(switch_btn, cfg->switch_ui.pad_hor, 0);
+    }
+    lv_obj_set_size(switch_btn, cfg->switch_ui.width, cfg->switch_ui.height);
+
+    return switch_btn;
+}

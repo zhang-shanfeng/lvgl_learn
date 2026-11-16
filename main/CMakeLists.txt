@@ -22,6 +22,8 @@ set(app_srcs
     "ui/ui.c"
     "ui/page_list.c"
     "ui/page_pwm.c"
+    "ui/page_settings.c"
+    "nvs_float.c"
 )
 
 set(includes 

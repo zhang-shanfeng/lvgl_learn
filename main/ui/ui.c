@@ -4,17 +4,17 @@
 #include "page_ina226.h"
 #include "page_list.h"
 #include "page_pwm.h"
+#include "page_settings.h"
 
 bool is_edited_mode = false;
 
 struct ui_t ui;
 
-const page_builder_t page_builders[PAGE_COUNT] = {
-    [PAGE_LIST] = build_page_list,
-    [PAGE_HOME] = build_page_home,
-    [PAGE_INA226] = build_page_ina226,
-    [PAGE_PWM] = build_page_pwm,
-};
+const page_builder_t page_builders[PAGE_COUNT] = {[PAGE_LIST] = build_page_list,
+                                                  [PAGE_HOME] = build_page_home,
+                                                  [PAGE_INA226] = build_page_ina226,
+                                                  [PAGE_PWM] = build_page_pwm,
+                                                  [PAGE_SETTING] = build_page_setting};
 
 /**************************************************************************************************
  * @brief 根据页面 ID 切换页面，只是操控控件的 hidden 属性来实现
@@ -58,7 +58,7 @@ void ui_show_page(enum page_id_t id)
         lv_obj_set_hidden(ui.header_right, false);
     }
 
-    static const char* titles[PAGE_COUNT] = {"List", "Home", "INA226", "PWM"};
+    static const char* titles[PAGE_COUNT] = {"List", "Home", "INA226", "PWM", "Settings"};
     lv_label_set_text(ui.title_label, titles[id]);
 
     /* 切换输入设备的组绑定，焦点自动落到目标页 */

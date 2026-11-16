@@ -9,6 +9,7 @@ enum page_id_t
     PAGE_HOME,
     PAGE_INA226,
     PAGE_PWM,
+    PAGE_SETTING,
     PAGE_COUNT,
 };
 

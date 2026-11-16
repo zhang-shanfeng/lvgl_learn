@@ -41,11 +41,14 @@ void app_main(void)
     buzzer_set_enabled(buzzer_enabled);
 
     buzzer_init();
+
+    ina226_task_init();
+
     button_task_init();
 
-    lvgl_app_init();
-
     xTaskCreatePinnedToCore(ina226_task, "ina226_task", 4096, NULL, 0, NULL, 1);
+
+    lvgl_app_init();
 
     while (1)
     {

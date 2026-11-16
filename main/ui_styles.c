@@ -4,10 +4,15 @@ lv_style_t flex_style;
 lv_style_t g_border_style;
 lv_style_t style_spinbox_null_cursor;
 
+lv_style_t style_switch_main;
+lv_style_t style_switch_indicator_checked;
+lv_style_t style_switch_knob;
+
 void border_style_init(void)
 {
     static bool inited = false;
-    if (inited) return;
+    if (inited)
+        return;
 
     lv_style_set_border_width(&g_border_style, 2);
     lv_style_set_border_color(&g_border_style, lv_color_white());
@@ -67,4 +72,27 @@ void styles_init(void)
     lv_style_set_bg_opa(&style_spinbox_null_cursor, LV_OPA_0);
     lv_style_set_text_opa(&style_spinbox_null_cursor, LV_OPA_0);
     lv_style_set_border_width(&style_spinbox_null_cursor, 0);
+
+    /* switch 样式 */
+    lv_style_init(&style_switch_main);
+    lv_style_set_bg_color(&style_switch_main, lv_palette_lighten(LV_PALETTE_GREY, 1));
+    lv_style_set_bg_opa(&style_switch_main, (255 * 100 / 100));
+    lv_style_set_radius(&style_switch_main, 999);
+    lv_style_set_pad_all(&style_switch_main, 6);
+    lv_style_set_border_width(&style_switch_main, 0);
+
+    lv_style_init(&style_switch_indicator_checked);
+    lv_style_set_bg_color(&style_switch_indicator_checked, lv_color_hex(0x22c55e));
+    lv_style_set_bg_opa(&style_switch_indicator_checked, (255 * 100 / 100));
+
+    lv_style_init(&style_switch_knob);
+    lv_style_set_bg_color(&style_switch_knob, lv_color_hex(0xffffff));
+    lv_style_set_bg_opa(&style_switch_knob, (255 * 100 / 100));
+    lv_style_set_pad_all(&style_switch_knob, 2);
+    lv_style_set_border_color(&style_switch_knob, lv_color_hex(0xd1d5db));
+    lv_style_set_border_width(&style_switch_knob, 1);
+    lv_style_set_shadow_color(&style_switch_knob, lv_color_hex(0x000000));
+    lv_style_set_shadow_opa(&style_switch_knob, (255 * 40 / 100));
+    lv_style_set_shadow_width(&style_switch_knob, 16);
+    lv_style_set_shadow_offset_y(&style_switch_knob, 2);
 }

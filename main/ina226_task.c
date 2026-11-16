@@ -23,10 +23,15 @@
 #include "driver/i2c_master.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_lvgl_port.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "lvgl.h"
+#include "nvs.h"
+#include "nvs_flash.h"
+#include "nvs_float.h"
 #include "page_ina226.h"
 #include "sdkconfig.h"
 
@@ -38,9 +43,12 @@ static const char *TAG = "ina226";
 /* A0,A1 引脚接到 3.3V */
 #define INA226_I2C_ADDR 0x40
 ina226_device_t ina;
+
+#define INA226_NVS_NAMESPACE "ina226"
+#define INA226_NVS_KEY_MAX_CURRENT "max_current"
 struct ina226_value_t ina226_values;
 
-extern float real_current_max_value;
+static float max_current = 0.2f; /* 私有变量，用于 nvs 存储最大报警值,与 ina226 组件的报警值同步 */
 
 static const i2c_master_bus_config_t i2c_bus_config = {
     .i2c_port = I2C_NUM_0,
@@ -67,7 +75,7 @@ static ina226_config_t ina226_config = {
     .max_current = 8.129f,
 };
 
-void ina226_task(void *pvParameters)
+void ina226_task_init(void)
 {
     i2c_master_bus_handle_t i2c_bus;
 
@@ -95,21 +103,25 @@ void ina226_task(void *pvParameters)
         vTaskDelete(NULL);
         return;
     }
+}
 
+void ina226_task(void *pvParameters)
+{
     uint16_t manufacturer_id;
     uint16_t die_id;
     ina226_get_manufacturer_id(&ina, &manufacturer_id);
     ina226_get_die_id(&ina, &die_id);
     ESP_LOGI(TAG, "厂商ID:%d, DIE ID:%d", manufacturer_id, die_id);
 
-    // current_alert_value_set(&ina, 0.015);
+    ina226_task_nvs_load(&max_current);
+    ESP_LOGW(TAG, "load done max_current: %.2f", max_current);
 
     while (1)
     {
         vTaskDelay(pdMS_TO_TICKS(200));
 
         // 读取总线电压
-        err = ina226_get_bus_voltage(&ina, &ina226_values.voltage);
+        esp_err_t err = ina226_get_bus_voltage(&ina, &ina226_values.voltage);
         if (err != ESP_OK)
         {
             ESP_LOGE(TAG, "Read voltage failed");
@@ -139,7 +151,7 @@ void ina226_task(void *pvParameters)
             ina226_init(&ina, &ina226_config);
         }
 
-        if (ina226_values.current >= real_current_max_value)
+        if (ina226_values.current >= max_current && ina226_values.voltage != 0)
         {
             buzzer_start_alarm(150, 100);
         }
@@ -151,13 +163,13 @@ void ina226_task(void *pvParameters)
     }
 }
 
-void voltage_alert_value_set(ina226_device_t *device, const float alert_value)
+void ina226_task_set_voltage_alert_value(ina226_device_t *device, const float alert_value)
 {
     ina226_set_alert_mask(device, INA226_ALERT_BUS_OVER_VOLTAGE);
     ina226_set_bus_voltage_alert_limit(device, alert_value);
 }
 
-void current_alert_value_set(ina226_device_t *device, const float alert_current_a)
+void ina226_task_set_current_alert_value(ina226_device_t *device, const float alert_current_a)
 {
     // INA226 没有独立的电流超限报警位，电流报警复用分流电压超限(SOL)
     ina226_set_alert_mask(device, INA226_ALERT_SHUNT_OVER_VOLTAGE);
@@ -173,7 +185,7 @@ void current_alert_value_set(ina226_device_t *device, const float alert_current_
     ina226_set_alert_limit_raw(device, alert_limit_raw);
 }
 
-void power_alert_value_set(ina226_device_t *device, const float alert_power_w)
+void ina226_task_set_power_alert_value(ina226_device_t *device, const float alert_power_w)
 {
     // 使能功率超限报警 (POL, Bit 11)
     ina226_set_alert_mask(device, INA226_ALERT_POWER_OVER_LIMIT);
@@ -186,4 +198,73 @@ void power_alert_value_set(ina226_device_t *device, const float alert_power_w)
     uint16_t alert_limit_raw = (uint16_t)(alert_power_w / power_lsb);
 
     ina226_set_alert_limit_raw(device, alert_limit_raw);
+}
+
+esp_err_t ina226_task_nvs_save(const float max_current)
+{
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(INA226_NVS_NAMESPACE, NVS_READWRITE, &handle);
+    if (err != ESP_OK)
+        return err;
+
+    err = save_float(handle, INA226_NVS_KEY_MAX_CURRENT, max_current);
+
+    if (err == ESP_OK)
+    {
+        err = nvs_commit(handle);
+        ESP_LOGW(TAG, "nvs_commit, max_current:%.2f", max_current);
+    }
+    nvs_close(handle);
+    return err;
+}
+
+esp_err_t ina226_task_nvs_load(float *max_current)
+{
+    if (max_current == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(INA226_NVS_NAMESPACE, NVS_READWRITE, &handle);
+    if (err != ESP_OK)
+        return err;
+
+    err = load_float(handle, INA226_NVS_KEY_MAX_CURRENT, max_current);
+
+    ESP_LOGW(TAG, "max_current: %.2f", *max_current);
+
+    if (err == ESP_ERR_NVS_NOT_FOUND)
+    {
+        esp_err_t save_err = save_float(handle, INA226_NVS_KEY_MAX_CURRENT, *max_current);
+        if (save_err == ESP_OK)
+        {
+            save_err = nvs_commit(handle);
+        }
+        if (save_err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "save default max_current failed: %s", esp_err_to_name(save_err));
+            /* 存储失败，但内存里有默认值，可以继续用；
+               返回 ESP_OK 让业务继续，或返回 save_err 让上层决定 */
+            err = ESP_OK;  // 或者 err = save_err; 看你的策略
+        }
+        else
+        {
+            err = ESP_OK;  // 首次初始化成功，视为加载成功
+        }
+    }
+
+    nvs_close(handle);
+    return err;
+}
+
+void ina226_task_set_max_current(float current_value)
+{
+    max_current = current_value;
+    ina226_task_set_current_alert_value(&ina, max_current);
+}
+
+float ina226_task_get_max_current(void)
+{
+    return max_current;
 }

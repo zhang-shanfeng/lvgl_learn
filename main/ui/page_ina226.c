@@ -16,7 +16,6 @@ static struct ui_kv_row_cfg_t make_ina226_kv_cfg(const char* title, const char* 
 
 static void main_cont(lv_obj_t* parent);
 static void current_spinbox(lv_obj_t* parent);
-float real_current_max_value;
 
 /* 事件函数 */
 static void toggle_btn_event_cb(lv_event_t* e);
@@ -176,11 +175,13 @@ static void spinbox_event_handler(lv_event_t* e)
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t* spinbox = lv_event_get_target(e);
 
+    float max_current = 0.0f;
+    int32_t raw_value = lv_spinbox_get_value(spinbox);
+    max_current = (float)raw_value / 1000.0f;
+
     if (code == LV_EVENT_VALUE_CHANGED)
     {
-        int32_t raw_value = lv_spinbox_get_value(spinbox);
-        real_current_max_value = (float)raw_value / 1000.0f;
-        current_alert_value_set(&ina, real_current_max_value);
+        ina226_task_set_max_current(max_current);
     }
 
     if (code == LV_EVENT_CLICKED)
@@ -192,6 +193,11 @@ static void spinbox_event_handler(lv_event_t* e)
         if (!is_edited_mode)
         {
             lv_obj_add_style(spinbox, &style_spinbox_null_cursor, LV_PART_CURSOR);
+            esp_err_t err = ina226_task_nvs_save(max_current); /* 点击 Enter 按键后保存参数 */
+            if (err != ESP_OK)
+            {
+                ESP_LOGW(TAG, "save error");
+            }
         }
         else
         {

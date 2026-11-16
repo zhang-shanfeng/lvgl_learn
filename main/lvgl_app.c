@@ -1,8 +1,10 @@
 #include "lvgl_app.h"
 
+#include <math.h>
 #include <stdio.h>
 
 #include "button_task.h"
+#include "buzzer.h"
 #include "color.h"
 #include "custom_fonts.h"
 #include "driver/gpio.h"
@@ -13,6 +15,7 @@
 #include "lvgl_setup.h"
 #include "page_home.h"
 #include "page_ina226.h"
+#include "page_settings.h"
 #include "ui.h"
 #include "ui_styles.h"
 #include "ui_widgets.h"
@@ -146,6 +149,13 @@ void lvgl_app_init(void)
     create_content_area(ui.screen);
 
     for (int i = 0; i < PAGE_COUNT; i++) { ui.pages[i] = create_page(ui.content_area, i); }
+
+    /* 加载 nvs 状态到控件 */
+    lv_obj_set_state(page_settings.switch_btn, LV_STATE_CHECKED, buzzer_is_enabled());
+
+    float max_current = ina226_task_get_max_current();
+
+    lv_spinbox_set_value(ina226_ui.current_spinbox, (int32_t)lroundf(max_current * 1000.0f));
 
     ui_show_page(PAGE_HOME);
     lcd_set_backlight(true); /* 在页面都创建完成后才开启背光 */

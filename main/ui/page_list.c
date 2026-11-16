@@ -16,7 +16,7 @@ void build_page_list(lv_obj_t *page, lv_group_t *group)
     lv_obj_set_flex_flow(page, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(page, 8, 0);
 
-    static const char *names[PAGE_COUNT] = {"List", "Home", "INA226", "PWM"};
+    static const char *names[PAGE_COUNT] = {"List", "Home", "INA226", "PWM", "Settings"};
     for (int i = 0; i < PAGE_COUNT; i++)
     {
         if (i == PAGE_LIST)

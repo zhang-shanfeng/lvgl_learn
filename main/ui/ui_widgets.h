@@ -66,8 +66,29 @@ struct ui_kv_row_spinbox_cfg_t
     struct ui_spinbox_cfg_t spinbox;
 };
 
+struct ui_switch_cfg_t
+{
+    int32_t pad_ver; /* 上下内边距 */
+    int32_t pad_hor; /* 左右内边距 */
+    int32_t width;
+    int32_t height;
+};
+
+struct ui_kv_row_switch_cfg_t
+{
+    int32_t width;   /* row 宽度 */
+    int32_t height;  /* row 高度 */
+    int32_t pad_ver; /* row 上下内边距 */
+    int32_t pad_hor; /* row 左右内边距 */
+    struct ui_label_cfg_t label;
+    struct ui_switch_cfg_t switch_ui;
+};
+
 lv_obj_t* ui_create_kv_row(lv_obj_t* parent, const struct ui_kv_row_cfg_t* cfg);
 lv_obj_t* ui_create_kv_row_spinbox(lv_obj_t* parent, const struct ui_kv_row_spinbox_cfg_t* cfg);
+lv_obj_t* ui_create_kv_row_switch(lv_obj_t* parent, const struct ui_kv_row_switch_cfg_t* cfg);
+
+struct ui_kv_row_switch_cfg_t make_row_switch_kv_cfg(const char* title);
 struct ui_kv_row_spinbox_cfg_t make_row_spinbox_kv_cfg(const char* title);
 
 void ui_header_create(
