@@ -24,6 +24,7 @@ set(app_srcs
     "ui/page_pwm.c"
     "ui/page_settings.c"
     "nvs_float.c"
+    "ui/flex_list.c"
 )
 
 set(includes 
